@@ -1,0 +1,7 @@
+project_id = "vxvrokghumsnmdclfsdj"
+
+[functions.generate-token]
+verify_jwt = false
+
+[functions.validate-token]
+verify_jwt = false
