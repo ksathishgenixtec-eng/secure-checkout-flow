@@ -4,46 +4,49 @@
 
 @layer base {
   :root {
-    --background: 0 0% 99%;
-    --foreground: 240 10% 8%;
+    /* Soft neutral, clinical palette */
+    --background: 220 20% 99%;
+    --foreground: 220 25% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 8%;
+    --card-foreground: 220 25% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 8%;
+    --popover-foreground: 220 25% 14%;
 
-    --primary: 152 76% 38%;
+    /* Muted clinical blue */
+    --primary: 212 60% 42%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 152 80% 55%;
+    --primary-glow: 200 70% 62%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 10% 12%;
+    --secondary: 220 16% 96%;
+    --secondary-foreground: 220 25% 18%;
 
-    --muted: 240 5% 95%;
-    --muted-foreground: 240 4% 42%;
+    --muted: 220 16% 96%;
+    --muted-foreground: 220 10% 46%;
 
-    --accent: 152 80% 92%;
-    --accent-foreground: 152 76% 24%;
+    /* Subtle green accent */
+    --accent: 158 40% 94%;
+    --accent-foreground: 158 60% 24%;
 
-    --destructive: 0 84% 55%;
+    --destructive: 0 70% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 152 76% 38%;
+    --border: 220 14% 92%;
+    --input: 220 14% 92%;
+    --ring: 212 60% 42%;
 
-    --radius: 0.875rem;
+    --radius: 0.75rem;
 
-    --gradient-hero: linear-gradient(135deg, hsl(152 76% 38%), hsl(168 78% 42%));
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(240 8% 98%));
-    --gradient-dark: linear-gradient(135deg, hsl(240 12% 10%), hsl(240 14% 16%));
+    --gradient-hero: linear-gradient(180deg, hsl(220 30% 98%), hsl(212 40% 95%));
+    --gradient-soft: radial-gradient(ellipse at top, hsl(212 60% 96%), transparent 60%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 20% 99%));
 
-    --shadow-soft: 0 2px 12px -2px hsl(240 10% 8% / 0.06);
-    --shadow-elegant: 0 12px 40px -10px hsl(152 76% 38% / 0.28);
-    --shadow-card: 0 1px 3px hsl(240 10% 8% / 0.04), 0 8px 24px -8px hsl(240 10% 8% / 0.08);
+    --shadow-soft: 0 1px 2px hsl(220 25% 14% / 0.04), 0 4px 16px -8px hsl(220 25% 14% / 0.06);
+    --shadow-elegant: 0 2px 4px hsl(220 25% 14% / 0.04), 0 24px 48px -24px hsl(212 60% 42% / 0.18);
+    --shadow-card: 0 1px 2px hsl(220 25% 14% / 0.03);
 
-    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -56,33 +59,45 @@
   }
 
   .dark {
-    --background: 240 12% 7%;
-    --foreground: 0 0% 98%;
-    --card: 240 12% 10%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 12% 10%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 152 76% 48%;
-    --primary-foreground: 240 12% 7%;
-    --primary-glow: 152 80% 60%;
-    --secondary: 240 8% 16%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 8% 14%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 152 50% 18%;
-    --accent-foreground: 152 80% 80%;
+    --background: 220 25% 8%;
+    --foreground: 220 15% 96%;
+    --card: 220 22% 11%;
+    --card-foreground: 220 15% 96%;
+    --popover: 220 22% 11%;
+    --popover-foreground: 220 15% 96%;
+    --primary: 200 70% 62%;
+    --primary-foreground: 220 25% 8%;
+    --primary-glow: 200 80% 72%;
+    --secondary: 220 18% 16%;
+    --secondary-foreground: 220 15% 96%;
+    --muted: 220 18% 14%;
+    --muted-foreground: 220 10% 65%;
+    --accent: 158 40% 18%;
+    --accent-foreground: 158 60% 80%;
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 8% 18%;
-    --input: 240 8% 18%;
-    --ring: 152 76% 48%;
+    --border: 220 18% 18%;
+    --input: 220 18% 18%;
+    --ring: 200 70% 62%;
   }
 }
 
 @layer base {
   * { @apply border-border; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "ss01", "cv11";
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11", "cv02";
+    letter-spacing: -0.011em;
   }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .hairline { border-color: hsl(var(--border) / 0.7); }
 }
