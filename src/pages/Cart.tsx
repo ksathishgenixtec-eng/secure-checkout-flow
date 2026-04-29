@@ -53,7 +53,23 @@ const Cart = () => {
 
   const handleCopy = async () => {
     if (!generatedUrl) return;
-    await navigator.clipboard.writeText(generatedUrl);
+    try {
+      const parsed = new URL(generatedUrl);
+      const code = parsed.searchParams.get("code") ?? "";
+      const rd = parsed.searchParams.get("rd") ?? "";
+      const extras: string[] = [];
+      parsed.searchParams.forEach((value, key) => {
+        if (key !== "code" && key !== "rd") extras.push(`${key}=${value}`);
+      });
+      const fullRd = extras.length > 0 ? `${rd}&${extras.join("&")}` : rd;
+      const result = new URL(parsed.origin + parsed.pathname);
+      result.searchParams.set("code", code);
+      result.searchParams.set("rd", fullRd);
+      setGeneratedUrl(result.toString());
+      await navigator.clipboard.writeText(result.toString());
+    } catch {
+      await navigator.clipboard.writeText(generatedUrl);
+    }
     toast.success("URL copied");
   };
   const handleNavigate = () => { if (generatedUrl) window.location.href = generatedUrl; };
