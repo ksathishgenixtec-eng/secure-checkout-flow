@@ -27,7 +27,7 @@ const Cart = () => {
   const itemsBase64 = useMemo(() => {
     if (items.length === 0) return "";
     const payload = items.map((i) => ({ code: i.code, quantity: i.qty, days: i.days, codeType: i.codeType }));
-    try { return btoa(unescape(encodeURIComponent(JSON.stringify(payload)))); } catch { return ""; }
+    try { return btoa(JSON.stringify(payload)); } catch { return ""; }
   }, [items]);
 
   const handleGenerate = async () => {
@@ -41,38 +41,45 @@ const Cart = () => {
       });
       if (error || !data?.token) throw new Error(error?.message || "Failed to generate token");
       const rd = `/externalorder/createappointment?items=${itemsBase64}`;
-      const url = new URL(redirectBase);
-      url.searchParams.set("code", data.token);
-      url.searchParams.set("rd", rd);
-      setGeneratedUrl(url.toString());
+      const url = `${redirectBase}?code=${data.token}&rd=${rd}`;
+      setGeneratedUrl(url);
       toast.success("Checkout link generated");
     } catch (e: any) {
       toast.error(e?.message || "Could not generate checkout link");
     } finally { setLoading(false); }
   };
 
+  const buildEncodedUrl = (urlString: string): string => {
+    try {
+      // Split by "&rd=" to separate base URL from rd value
+      const rdIndex = urlString.indexOf("&rd=");
+      if (rdIndex === -1) return urlString;
+
+      const basePart = urlString.substring(0, rdIndex); // includes code parameter
+      const rdValuePart = urlString.substring(rdIndex + 4); // everything after "&rd="
+
+      // URL-encode the rd value (this will encode & as %26, ? as %3F, = as %3D, etc.)
+      const encodedRd = encodeURIComponent(rdValuePart);
+
+      return `${basePart}&rd=${encodedRd}`;
+    } catch {
+      return urlString;
+    }
+  };
+
   const handleCopy = async () => {
     if (!generatedUrl) return;
-    try {
-      const parsed = new URL(generatedUrl);
-      const code = parsed.searchParams.get("code") ?? "";
-      const rd = parsed.searchParams.get("rd") ?? "";
-      const extras: string[] = [];
-      parsed.searchParams.forEach((value, key) => {
-        if (key !== "code" && key !== "rd") extras.push(`${key}=${value}`);
-      });
-      const fullRd = extras.length > 0 ? `${rd}&${extras.join("&")}` : rd;
-      const result = new URL(parsed.origin + parsed.pathname);
-      result.searchParams.set("code", code);
-      result.searchParams.set("rd", fullRd);
-      setGeneratedUrl(result.toString());
-      await navigator.clipboard.writeText(result.toString());
-    } catch {
-      await navigator.clipboard.writeText(generatedUrl);
-    }
+    const encodedUrl = buildEncodedUrl(generatedUrl);
+    await navigator.clipboard.writeText(encodedUrl);
     toast.success("URL copied");
   };
-  const handleNavigate = () => { if (generatedUrl) window.location.href = generatedUrl; };
+
+  const handleNavigate = () => {
+    if (generatedUrl) {
+      const encodedUrl = buildEncodedUrl(generatedUrl);
+      window.location.href = encodedUrl;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
