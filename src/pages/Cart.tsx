@@ -27,7 +27,12 @@ const Cart = () => {
   const itemsBase64 = useMemo(() => {
     if (items.length === 0) return "";
     const payload = items.map((i) => ({ code: i.code, quantity: i.qty, days: i.days, codeType: i.codeType }));
-    try { return btoa(JSON.stringify(payload)); } catch { return ""; }
+    try {
+      return btoa(JSON.stringify(payload))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    } catch { return ""; }
   }, [items]);
 
   const handleGenerate = async () => {
