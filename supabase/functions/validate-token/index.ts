@@ -75,49 +75,15 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceKey);
 
-  const { data: row, error: rowErr } = await admin
-    .from("temp_tokens")
-    .select("id, user_id, expires_at, is_used")
-    .eq("token", token)
-    .maybeSingle();
+  // Extract claims from verified JWT payload
+  const userId = payload.user_id || payload.sub;
+  const email = payload.email ?? null;
 
-  if (rowErr || !row) {
-    return new Response(JSON.stringify({ error: "Token not found" }), {
-      status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  if (row.is_used) {
-    return new Response(JSON.stringify({ error: "Token already used" }), {
-      status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  if (new Date(row.expires_at).getTime() < Date.now()) {
-    return new Response(JSON.stringify({ error: "Token expired" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  // Atomically mark as used (one-time)
-  const { data: updated, error: updErr } = await admin
-    .from("temp_tokens")
-    .update({ is_used: true })
-    .eq("id", row.id)
-    .eq("is_used", false)
-    .select("id")
-    .maybeSingle();
-  if (updErr || !updated) {
-    return new Response(JSON.stringify({ error: "Token already used" }), {
-      status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  // Fetch profile + email
-  const { data: userRes } = await admin.auth.admin.getUserById(row.user_id);
-  const email = userRes?.user?.email ?? payload.email ?? null;
+  // Fetch profile for additional user details
   const { data: profile } = await admin
     .from("profiles")
     .select("first_name, last_name")
-    .eq("user_id", row.user_id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   // Issue a fresh signed JWT for the external system.
@@ -126,8 +92,8 @@ Deno.serve(async (req) => {
   const accessToken = await create(
     { alg: "HS256", typ: "JWT" },
     {
-      sub: row.user_id,
-      user_id: row.user_id,
+      sub: userId,
+      user_id: userId,
       email,
       first_name: profile?.first_name ?? "",
       last_name: profile?.last_name ?? "",
@@ -143,7 +109,7 @@ Deno.serve(async (req) => {
       email: email ?? "",
       first_name: profile?.first_name ?? "",
       last_name: profile?.last_name ?? "",
-      user_id: row.user_id,
+      user_id: userId,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );

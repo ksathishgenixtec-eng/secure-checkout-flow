@@ -41,11 +41,10 @@ const Cart = () => {
     if (!redirectBase) { toast.error("Checkout redirect URL is not configured"); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-token", {
-        body: { cart: items.map((i) => ({ id: i.id, qty: i.qty, days: i.days })) },
-      });
+      const { data, error } = await supabase.functions.invoke("generate-token", {});
+
       if (error || !data?.token) throw new Error(error?.message || "Failed to generate token");
-      const rd = `/externalorder/createappointment?items=${itemsBase64}`;
+      const rd = `/extappointment/create?items=${itemsBase64}`;
       const url = `${redirectBase}?code=${data.token}&rd=${rd}`;
       setGeneratedUrl(url);
       toast.success("Checkout link generated");

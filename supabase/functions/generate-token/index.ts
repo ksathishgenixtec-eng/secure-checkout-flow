@@ -29,7 +29,6 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -46,14 +45,6 @@ Deno.serve(async (req) => {
     const userId = claims.claims.sub as string;
     const email = claims.claims.email as string;
 
-    const body = await req.json().catch(() => ({}));
-    const cart = Array.isArray(body?.cart)
-      ? body.cart.slice(0, 50).map((i: any) => ({
-          id: String(i.id),
-          qty: Number(i.qty) || 1,
-        }))
-      : [];
-
     const key = await getKey();
     const jwt = await create(
       { alg: "HS256", typ: "JWT" },
@@ -61,31 +52,14 @@ Deno.serve(async (req) => {
         sub: userId,
         user_id: userId,
         email,
-        cart,
-        exp: getNumericDate(120), // 2 minutes
+        exp: getNumericDate(600), // 10 minutes
         iat: getNumericDate(0),
       },
       key,
     );
 
-    const expiresAt = new Date(Date.now() + 120_000).toISOString();
-
-    const admin = createClient(supabaseUrl, serviceKey);
-    const { error: insErr } = await admin.from("temp_tokens").insert({
-      token: jwt,
-      user_id: userId,
-      expires_at: expiresAt,
-      is_used: false,
-    });
-    if (insErr) {
-      return new Response(JSON.stringify({ error: "Failed to store token" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     return new Response(
-      JSON.stringify({ token: jwt, expires_at: expiresAt }),
+      JSON.stringify({ token: jwt }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
