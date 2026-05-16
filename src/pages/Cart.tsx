@@ -45,7 +45,8 @@ const Cart = () => {
 
       if (error || !data?.token) throw new Error(error?.message || "Failed to generate token");
       const rd = `/extappointment/create?items=${itemsBase64}`;
-      const url = `${redirectBase}?code=${data.token}&rd=${rd}`;
+      const refId = `${Math.random().toString(36).substring(2, 4).toUpperCase()}-${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0').toUpperCase()}`;
+      const url = `${redirectBase}?code=${data.token}&refid=${refId}&rd=${rd}`;
       setGeneratedUrl(url);
       toast.success("Checkout link generated");
     } catch (e: any) {
