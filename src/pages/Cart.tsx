@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Trash2, ShoppingBag, ArrowRight, Loader2, Copy, ExternalLink } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,23 +17,14 @@ const Cart = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [redirectBase, setRedirectBase] = useState<string>("");
-  const [generatedUrl, setGeneratedUrl] = useState<string>("");
+  const [paramsJson, setParamsJson] = useState<string>("");
+  const [authToken, setAuthToken] = useState<string>("");
+  const [refId, setRefId] = useState<string>("");
 
   useEffect(() => {
     supabase.from("app_settings").select("value").eq("key", "checkout_redirect_url").maybeSingle()
       .then(({ data }) => { if (data?.value) setRedirectBase(data.value); });
   }, []);
-
-  const itemsBase64 = useMemo(() => {
-    if (items.length === 0) return "";
-    const payload = items.map((i) => ({ code: i.code, quantity: i.qty, days: i.days, codeType: i.codeType }));
-    try {
-      return btoa(JSON.stringify(payload))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-    } catch { return ""; }
-  }, [items]);
 
   const handleGenerate = async () => {
     if (items.length === 0) return;
@@ -42,48 +33,43 @@ const Cart = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-token", {});
-
       if (error || !data?.token) throw new Error(error?.message || "Failed to generate token");
-      const rd = `/extappointment/create?items=${itemsBase64}`;
-      const refId = `${Math.random().toString(36).substring(2, 4).toUpperCase()}-${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0').toUpperCase()}`;
-      const url = `${redirectBase}?code=${data.token}&refid=${refId}&rd=${rd}`;
-      setGeneratedUrl(url);
-      toast.success("Checkout link generated");
+
+      const newRefId = `${Math.random().toString(36).substring(2, 4).toUpperCase()}-${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0").toUpperCase()}`;
+      const products = items.map((i) => ({ code: i.code, codeType: i.codeType, quantity: i.qty, days: i.days }));
+
+      setAuthToken(data.token);
+      setRefId(newRefId);
+      setParamsJson(JSON.stringify({ products }, null, 2));
+      toast.success("Checkout link generated — edit JSON below then navigate");
     } catch (e: any) {
       toast.error(e?.message || "Could not generate checkout link");
     } finally { setLoading(false); }
   };
 
-  const buildEncodedUrl = (urlString: string): string => {
+  const buildSsoUrl = (): string | null => {
     try {
-      // Split by "&rd=" to separate base URL from rd value
-      const rdIndex = urlString.indexOf("&rd=");
-      if (rdIndex === -1) return urlString;
-
-      const basePart = urlString.substring(0, rdIndex); // includes code parameter
-      const rdValuePart = urlString.substring(rdIndex + 4); // everything after "&rd="
-
-      // URL-encode the rd value (this will encode & as %26, ? as %3F, = as %3D, etc.)
-      const encodedRd = encodeURIComponent(rdValuePart);
-
-      return `${basePart}&rd=${encodedRd}`;
+      const host = window.location.hostname === "localhost" ? "https://localhost:44427" : redirectBase;
+      const base = `${host}/sso?code=${authToken}&action=create_appt&refid=${refId}`;
+      if (!paramsJson.trim()) return base;
+      const params = encodeURIComponent(btoa(JSON.stringify(JSON.parse(paramsJson))));
+      return `${base}&params=${params}`;
     } catch {
-      return urlString;
+      toast.error("Invalid JSON — fix the params before navigating");
+      return null;
     }
   };
 
   const handleCopy = async () => {
-    if (!generatedUrl) return;
-    const encodedUrl = buildEncodedUrl(generatedUrl);
-    await navigator.clipboard.writeText(encodedUrl);
+    const url = buildSsoUrl();
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
     toast.success("URL copied");
   };
 
   const handleNavigate = () => {
-    if (generatedUrl) {
-      const encodedUrl = buildEncodedUrl(generatedUrl);
-      window.location.href = encodedUrl;
-    }
+    const url = buildSsoUrl();
+    if (url) window.location.href = url;
   };
 
   return (
@@ -182,21 +168,21 @@ const Cart = () => {
           <section className="mt-20 pt-12 border-t border-border/60">
             <div className="max-w-2xl">
               <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Redirect</div>
-              <h3 className="mt-2 text-2xl font-semibold tracking-tight">Checkout URL</h3>
+              <h3 className="mt-2 text-2xl font-semibold tracking-tight">Appointment Params</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Edit freely to add extra parameters before navigating.
+                Edit the JSON to add extra fields (e.g. specialityCode, serviceCode) before navigating.
               </p>
               <Textarea
-                value={generatedUrl}
-                onChange={(e) => setGeneratedUrl(e.target.value)}
+                value={paramsJson}
+                onChange={(e) => setParamsJson(e.target.value)}
                 placeholder='Click "Generate checkout link" to populate this field.'
-                className="mt-6 min-h-[140px] rounded-xl font-mono text-xs leading-relaxed bg-secondary/40 border-border/60"
+                className="mt-6 min-h-[200px] rounded-xl font-mono text-xs leading-relaxed bg-secondary/40 border-border/60"
               />
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button onClick={handleNavigate} disabled={!generatedUrl} className="rounded-full gap-2">
+                <Button onClick={handleNavigate} disabled={!paramsJson || !authToken} className="rounded-full gap-2">
                   <ExternalLink className="h-4 w-4" /> Navigate
                 </Button>
-                <Button onClick={handleCopy} variant="outline" disabled={!generatedUrl} className="rounded-full gap-2">
+                <Button onClick={handleCopy} variant="outline" disabled={!paramsJson || !authToken} className="rounded-full gap-2">
                   <Copy className="h-4 w-4" /> Copy
                 </Button>
               </div>
